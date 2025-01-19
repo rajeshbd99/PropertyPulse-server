@@ -150,6 +150,38 @@ app.post('/properties/add', async (req, res) => {
   }
 });
 
+// Update property
+app.get('/properties/:id', async (req, res) => {
+  const id = req.params.id;
+  const result = await propertiesCollection.findOne({ _id: new ObjectId(id) });
+  res.send(result);
+});
+
+app.patch('/properties/update/:id', async (req, res) => {
+  const id = req.params.id;
+  const property = req.body;
+  const result = await propertiesCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: {
+      propertyTitle: property.propertyTitle,
+      location: property.location,
+      priceRange: property.priceRange,
+      agentEmail: property.agentEmail,
+      verificationStatus: property.verificationStatus,
+      agentName: property.agentName,
+      image : property.image,
+    } }
+  );
+  res.send(result);
+});
+
+app.delete('/properties/delete/:id', async (req, res) => {
+  const id = req.params.id;
+  const result = await propertiesCollection.deleteOne({ _id: new ObjectId(id) });
+  res.send(result);
+});
+
+
 /**
  * Route: PATCH /property/:id/verify
  * Description: Verify a property
