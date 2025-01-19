@@ -137,7 +137,6 @@ app.get('/properties', async (req, res) => {
 app.get('/my-properties/:email', async (req, res) => {
 const email=(req.params.email);
 const result = await propertiesCollection.find({agentEmail:email}).toArray();
-console.log(result);
 res.send(result);
 })
 app.post('/properties/add', async (req, res) => {
