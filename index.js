@@ -186,42 +186,40 @@ app.delete('/properties/delete/:id', async (req, res) => {
  * Route: PATCH /property/:id/verify
  * Description: Verify a property
  */
-app.patch('/property/:id/verify', async (req, res) => {
+app.patch('/properties/verify/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await propertiesCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { verificationStatus: 'verified' } }
     );
-    if (result.modifiedCount > 0) {
-      res.json({ message: 'Property verified successfully!' });
-    } else {
-      res.status(404).json({ message: 'Property not found' });
-    }
+    res.send(result);
   } catch (error) {
     console.error('Error verifying property:', error);
     res.status(500).send('Internal Server Error');
   }
 });
 
+//fetch all properties
+app.get('/all-properties', async (req, res) => {
+  const result = await propertiesCollection.find({}).toArray();
+  res.send(result);
+});
+
 /**
  * Route: PATCH /property/:id/reject
  * Description: Reject a property
  */
-app.patch('/property/:id/reject', async (req, res) => {
+app.patch('/properties/reject/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const result = await propertiesCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: { verificationStatus: 'rejected' } }
     );
-    if (result.modifiedCount > 0) {
-      res.json({ message: 'Property rejected successfully!' });
-    } else {
-      res.status(404).json({ message: 'Property not found' });
-    }
+    res.send(result);
   } catch (error) {
-    console.error('Error rejecting property:', error);
+    console.error('Error verifying property:', error);
     res.status(500).send('Internal Server Error');
   }
 });
