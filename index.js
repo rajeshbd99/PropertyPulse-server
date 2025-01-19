@@ -114,6 +114,44 @@ app.get("/check-admin/:email", async (req, res) => {
   }
 });
 
+//manage all users
+app.get("/users", async (req, res) => {
+  try {
+    const users = await userCollection.find({}).toArray();
+    res.send(users);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to get users" });
+  }
+});
+
+//mark as fraud
+app.put("/users/mark-fraud/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const update = { $set: { fraud: true } };
+    const result = await userCollection
+    .updateOne(query, update, { upsert: true });
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to mark as fraud" });
+  }
+});
+
+//delete fraud user properties
+app.delete("/properties/agent/:email", async (req, res) => {
+  try {
+    const email = req.params.email;
+    const query = { agentEmail: email };
+    const result = await propertiesCollection.deleteMany(query);
+    res.send(result);
+    console.log(email);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to delete fraud user properties" });
+  }
+});
+
+
 /**
  * Route: GET /properties
  * Description: Fetch all verified properties
