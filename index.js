@@ -5,7 +5,7 @@ const Stripe = require("stripe");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const admin = require("firebase-admin");
-const serviceAccount = require('./config/real-estate-platform-653cf-firebase-adminsdk-3dosc-3be90f05f3.json');
+const serviceAccount = require("./config/real-estate-platform-653cf-firebase-adminsdk-3dosc-3be90f05f3.json");
 const port = process.env.PORT || 3000;
 
 // Middleware
@@ -188,12 +188,11 @@ admin.initializeApp({
 //delete user
 app.delete("/users/:id", async (req, res) => {
   try {
-    const id = req.params.id; 
-       const query = { uid: id }; 
+    const id = req.params.id;
+    const query = { uid: id };
     const result = await userCollection.deleteOne(query);
     res.send(result);
     await admin.auth().deleteUser(id);
-
   } catch (error) {
     res.status(500).send({ error: "Failed to delete user" });
   }
@@ -204,8 +203,10 @@ app.put("/properties/advertise/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
-    const update = { $set: {advertise : true} };
-    const result = await propertiesCollection.updateOne(query, update, {upsert: true});
+    const update = { $set: { advertise: true } };
+    const result = await propertiesCollection.updateOne(query, update, {
+      upsert: true,
+    });
     res.send(result);
   } catch (error) {
     res.status(500).send({ error: "Failed to update property" });
@@ -218,13 +219,11 @@ app.get("/advertise-properties", async (req, res) => {
     const query = { advertise: true };
     const result = await propertiesCollection.find(query).toArray();
 
-    res.send(result
-    );
+    res.send(result);
   } catch (error) {
     res.status(500).send({ error: "Failed to get properties" });
   }
 });
-
 
 /**
  * Route: GET /properties
@@ -320,6 +319,13 @@ app.patch("/properties/verify/:id", async (req, res) => {
 //fetch all properties
 app.get("/all-properties", async (req, res) => {
   const result = await propertiesCollection.find({}).toArray();
+  res.send(result);
+});
+
+//user offers on properties
+app.get("/offers/user/:email", async (req, res) => {
+  const email = req.params.email;
+  const result = await offerCollection.find({ buyerEmail: email }).toArray();
   res.send(result);
 });
 
@@ -468,18 +474,8 @@ app.delete("/wishlist/:id", async (req, res) => {
 // Description: Save an offer made by a user
 app.post("/make-offer/:id", async (req, res) => {
   const offerDetails = req.body;
-  const userId = offerDetails.userId;
-  const id = req.params.id;
-  const updateWislist = await wishlistCollection.updateOne({
-    userId: userId,
-    _id: new ObjectId(id),
-  }, { $set: { offerStatus: "pending" } }, { upsert: true });
-  if (updateWislist.modifiedCount > 0) {
-    const result = await offerCollection.insertOne(offerDetails);
-    res.send(result);
-  } else {  
-    res.status(404).json({ message: "Wishlist item not found" });
-  }
+  const result = await offerCollection.insertOne(offerDetails);
+  res.send(result);
 });
 
 // Route: PATCH /offer/:id/accept
