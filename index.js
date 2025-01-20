@@ -199,6 +199,33 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
+//update advertise property
+app.put("/properties/advertise/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const update = { $set: {advertise : true} };
+    const result = await propertiesCollection.updateOne(query, update, {upsert: true});
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to update property" });
+  }
+});
+
+//get advertise properties
+app.get("/advertise-properties", async (req, res) => {
+  try {
+    const query = { advertise: true };
+    const result = await propertiesCollection.find(query).toArray();
+
+    res.send(result
+    );
+  } catch (error) {
+    res.status(500).send({ error: "Failed to get properties" });
+  }
+});
+
+
 /**
  * Route: GET /properties
  * Description: Fetch all verified properties
@@ -238,7 +265,7 @@ app.post("/properties/add", async (req, res) => {
 });
 
 // Update property
-app.get("/properties/:id", async (req, res) => {
+app.get("/properties/details/:id", async (req, res) => {
   const id = req.params.id;
   const result = await propertiesCollection.findOne({ _id: new ObjectId(id) });
   res.send(result);
