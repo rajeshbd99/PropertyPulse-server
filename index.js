@@ -26,8 +26,8 @@ const client = new MongoClient(uri, {
 let database;
 let propertiesCollection;
 let wishlistCollection;
-let offerDetails;
 let userCollection;
+let offerCollection;
 
 async function connectToDatabase() {
   try {
@@ -36,7 +36,7 @@ async function connectToDatabase() {
     propertiesCollection = database.collection("properties");
     wishlistCollection = database.collection("wishlist");
     userCollection = database.collection("users");
-    offerDetails = database.collection("offers");
+    offerCollection = database.collection("offers");
     console.log("Connected to MongoDB successfully!");
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
@@ -457,11 +457,7 @@ app.delete("/wishlist/:id", async (req, res) => {
     const result = await wishlistCollection.deleteOne({
       _id: new ObjectId(id),
     });
-    if (result.deletedCount > 0) {
-      res.json({ message: "Property removed from wishlist!" });
-    } else {
-      res.status(404).json({ message: "Wishlist item not found" });
-    }
+    res.send(result);
   } catch (error) {
     console.error("Error removing wishlist item:", error);
     res.status(500).send("Internal Server Error");
@@ -470,38 +466,19 @@ app.delete("/wishlist/:id", async (req, res) => {
 
 // Route: POST /make-offer
 // Description: Save an offer made by a user
-app.post("/make-offer", async (req, res) => {
+app.post("/make-offer/:id", async (req, res) => {
   const offerDetails = req.body;
-
-  if (offerDetails.role !== "user") {
-    return res.status(403).json({ message: "Only users can make an offer." });
-  }
-
-  const { propertyId, offerAmount, priceRange } = offerDetails;
-
-  // Validate offer amount is within the specified range
-  if (offerAmount < priceRange.min || offerAmount > priceRange.max) {
-    return res
-      .status(400)
-      .json({
-        message: `Offer must be between $${priceRange.min} and $${priceRange.max}.`,
-      });
-  }
-
-  try {
-    const result = await offerDetails.insertOne({
-      ...offerDetails,
-      status: "pending",
-      buyingDate: new Date(),
-    });
-
-    res.json({
-      message: "Offer made successfully!",
-      offerId: result.insertedId,
-    });
-  } catch (error) {
-    console.error("Error saving offer:", error.message);
-    res.status(500).send("Internal Server Error");
+  const userId = offerDetails.userId;
+  const id = req.params.id;
+  const updateWislist = await wishlistCollection.updateOne({
+    userId: userId,
+    _id: new ObjectId(id),
+  }, { $set: { offerStatus: "pending" } }, { upsert: true });
+  if (updateWislist.modifiedCount > 0) {
+    const result = await offerCollection.insertOne(offerDetails);
+    res.send(result);
+  } else {  
+    res.status(404).json({ message: "Wishlist item not found" });
   }
 });
 
