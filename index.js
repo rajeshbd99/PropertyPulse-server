@@ -225,6 +225,17 @@ app.get("/advertise-properties", async (req, res) => {
   }
 });
 
+//requested properties
+app.get("/offers/agent/:email", async (req, res) => {
+  try {
+    const query = {agentEmail:req.params.email};
+    const result = await offerCollection.find(query).toArray();
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to get properties" });
+  }
+});
+
 /**
  * Route: GET /properties
  * Description: Fetch all verified properties
@@ -478,20 +489,24 @@ app.post("/make-offer/:id", async (req, res) => {
   res.send(result);
 });
 
-// Route: PATCH /offer/:id/accept
-// Description: Accept the offer made by a user (agent updates the offer status)
-app.patch("/offer/:id/accept", async (req, res) => {
+//offer accepted by agent
+app.patch("/offers/accept/:id", async (req, res) => {
   const { id } = req.params;
+  const propertyId=req.body.propertyId;
   try {
-    const result = await offerDetails.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status: "accepted" } }
+    const updateMulti= await offerCollection.updateMany(
+      {propertyId:propertyId },
+      { $set: { offerStatus: "rejected" } }
     );
-    if (result.modifiedCount > 0) {
-      res.json({ message: "Offer accepted successfully!" });
-    } else {
-      res.status(404).json({ message: "Offer not found" });
+    if(updateMulti.modifiedCount>0){
+      const updateOne = await offerCollection.updateOne(
+        { _id: new ObjectId(id),propertyId:propertyId },
+        { $set: { offerStatus: "accepted" } }
+      );
+      res.send(updateOne);
     }
+    
+  
   } catch (error) {
     console.error("Error accepting offer:", error);
     res.status(500).send("Internal Server Error");
