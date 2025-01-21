@@ -28,6 +28,7 @@ let propertiesCollection;
 let wishlistCollection;
 let userCollection;
 let offerCollection;
+let reviewCollection;
 
 async function connectToDatabase() {
   try {
@@ -37,6 +38,7 @@ async function connectToDatabase() {
     wishlistCollection = database.collection("wishlist");
     userCollection = database.collection("users");
     offerCollection = database.collection("offers");
+    reviewCollection = database.collection("reviews");
     console.log("Connected to MongoDB successfully!");
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
@@ -382,51 +384,46 @@ app.get("/property/:id", async (req, res) => {
   }
 });
 
-/**
- * Route: GET /property/:id/reviews
- * Description: Fetch all reviews for a specific property
- */
-app.get("/property/:id/reviews", async (req, res) => {
+//gat all reviews
+app.get("/property/reviews/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const property = await propertiesCollection.findOne({
-      _id: new ObjectId(id),
-    });
-    if (property) {
-      res.json(property.reviews || []);
-    } else {
-      res.status(404).json({ message: "Property not found" });
-    }
+    const property = await reviewCollection.find({
+      propertyId: id,
+    }).toArray();
+    res.send(property);
   } catch (error) {
     console.error("Error fetching reviews:", error);
     res.status(500).send("Internal Server Error");
   }
 });
 
-/**
- * Route: POST /property/:id/review
- * Description: Add a review to a specific property
- */
-app.post("/property/:id/review", async (req, res) => {
-  const { id } = req.params;
-  const { review, reviewerName } = req.body;
-  const newReview = { review, reviewerName, createdAt: new Date() };
+//insert property review
+app.post("/property/review", async (req, res) => {
+  const review = req.body;
+  const result = await reviewCollection.insertOne(review);  
 
-  try {
-    const result = await propertiesCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $push: { reviews: newReview } }
-    );
-    if (result.modifiedCount > 0) {
-      res.json({ message: "Review added successfully!" });
-    } else {
-      res.status(404).json({ message: "Property not found" });
-    }
-  } catch (error) {
-    console.error("Error adding review:", error);
-    res.status(500).send("Internal Server Error");
-  }
+  res.send(result);
+}
+);
+
+//get my reviews
+app.get("/reviews/user/:email", async (req, res) => {
+  const email = req.params.email;
+  const result = await reviewCollection
+    .find({ email:email }).toArray();
+  res.send(result);
 });
+
+//delete review
+app.delete("/reviews/:id", async (req, res) => {
+  const id = req.params.id;
+  const result = await reviewCollection.deleteOne({
+    _id: new ObjectId(id),
+  });
+  res.send(result);
+});
+
 
 /**
  * Route: GET /wishlist/:userId
