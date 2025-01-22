@@ -264,11 +264,25 @@ app.post("/payments", async (req, res) => {
     const paymentIntent = await paymentCollection.insertOne(
       paymentInfo
     );
-    console.log(paymentIntent);
-    res.send(paymentIntent);
+    if (paymentIntent.insertedId) {
+      const result = await offerCollection.updateOne(
+        { _id: new ObjectId(paymentInfo.propertyId), buyerEmail: paymentInfo.buyerEmail },
+        { $set: { buyingStatus: "bought", transactionId: paymentInfo.transactionId } },{upsert:true}
+      );
+      res.send(result);
+    } else {  
+      res.status(400).send({ error: "Failed to process payment" });
+    }
   } catch (error) {
     res.status(400).send({ error: error.message });
   }
+});
+
+//sold properties get
+app.get("/sold-properties/agent/:email", async (req, res) => {
+  const email = req.params.email;
+  const result = await paymentCollection.find({ agentEmail: email }).toArray();
+  res.send(result);
 });
 
 
