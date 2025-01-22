@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const Stripe = require("stripe");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const admin = require("firebase-admin");
@@ -29,6 +29,7 @@ let wishlistCollection;
 let userCollection;
 let offerCollection;
 let reviewCollection;
+let paymentCollection;
 
 async function connectToDatabase() {
   try {
@@ -39,6 +40,7 @@ async function connectToDatabase() {
     userCollection = database.collection("users");
     offerCollection = database.collection("offers");
     reviewCollection = database.collection("reviews");
+    paymentCollection = database.collection("payments");
     console.log("Connected to MongoDB successfully!");
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
@@ -237,6 +239,39 @@ app.get("/offers/agent/:email", async (req, res) => {
     res.status(500).send({ error: "Failed to get properties" });
   }
 });
+
+// payment api
+app.post("/create-payment-intent", async (req, res) => {
+  const { price } = req.body;
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+      amount: price,
+      currency: "usd",
+      // In the latest version of the API, specifying the automatic_payment_methods parameter is optional because Stripe enables its functionality by default.
+      automatic_payment_methods: {
+          enabled: true,
+      },
+  });
+  res.send({
+      clientSecret: paymentIntent.client_secret,
+  });
+});
+
+//payment 
+app.post("/payments", async (req, res) => {
+  const paymentInfo = req.body;
+  try {
+    const paymentIntent = await paymentCollection.insertOne(
+      paymentInfo
+    );
+    console.log(paymentIntent);
+    res.send(paymentIntent);
+  } catch (error) {
+    res.status(400).send({ error: error.message });
+  }
+});
+
+
 
 /**
  * Route: GET /properties
