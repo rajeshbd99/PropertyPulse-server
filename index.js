@@ -3,14 +3,25 @@ const cors = require("cors");
 require("dotenv").config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const app = express();
 const admin = require("firebase-admin");
 const serviceAccount = require("./config/real-estate-platform-653cf-firebase-adminsdk-3dosc-3be90f05f3.json");
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+    // methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    // allowedHeaders: "Content-Type,Authorization",
+  })
+);
+
 app.use(express.json());
+app.use(cookieParser());
 
 // MongoDB URI and client setup
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.b3ce0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -46,6 +57,47 @@ async function connectToDatabase() {
     console.error("Error connecting to MongoDB:", error);
   }
 }
+
+// Verify JWT Middleware
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(403).send("A token is required for authentication");
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    req.user = decoded;
+  } catch (err) {
+    return res.status(401).send("Invalid Token");
+  }
+  return next();
+};
+
+
+//jwt authentication
+app.post("/jwt-auth", (req, res) => {
+  const { email } = req.body;
+  const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: "5h",
+  });
+  res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none'
+    })
+    .send({ success: false });
+});
+
+//logout
+app.post("/logout", (req, res) => {
+  // res.clearCookie("token", { path: "/", httpOnly: true, secure: true });
+  // res.status(200).send({ success: true });
+  res.clearCookie("token", {
+      httpOnly: true,
+      secure: false,
+    })
+    .send({ success: true });
+});
 
 // Routes
 app.get("/", (req, res) => {
@@ -285,13 +337,27 @@ app.get("/sold-properties/agent/:email", async (req, res) => {
   res.send(result);
 });
 
+//reject request property
+app.patch("/offers/reject/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const result = await offerCollection.updateOne(query,{
+      $set: { offerStatus: "rejected" }
+    });
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to delete offer" });
+  }
+});
+
 
 
 /**
  * Route: GET /properties
  * Description: Fetch all verified properties
  */
-app.get("/properties", async (req, res) => {
+app.get("/properties",verifyToken, async (req, res) => {
   try {
     const verifiedProperties = await propertiesCollection
       .find({ verificationStatus: "verified" })
@@ -385,7 +451,7 @@ app.get("/all-properties", async (req, res) => {
 });
 
 //user offers on properties
-app.get("/offers/user/:email", async (req, res) => {
+app.get("/offers/user/:email",verifyToken , async (req, res) => {
   const email = req.params.email;
   const result = await offerCollection.find({ buyerEmail: email }).toArray();
   res.send(result);
@@ -566,8 +632,6 @@ app.patch("/offers/accept/:id", async (req, res) => {
       );
       res.send(updateOne);
     }
-    
-  
   } catch (error) {
     console.error("Error accepting offer:", error);
     res.status(500).send("Internal Server Error");
