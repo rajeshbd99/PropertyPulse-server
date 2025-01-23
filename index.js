@@ -473,6 +473,21 @@ app.delete("/reviews/:id", async (req, res) => {
   res.send(result);
 });
 
+//get all reviews by admin
+app.get("/reviews", async (req, res) => {
+  const result = await reviewCollection.find({}).toArray();
+  res.send(result);
+});
+
+//delete review by admin
+app.delete("/admin/reviews/:id", async (req, res) => {
+  const id = req.params.id;
+  const email=req.body.email;
+  const result = await reviewCollection.deleteOne({
+    _id: new ObjectId(id),email:email
+  });
+  res.send(result);
+});
 
 /**
  * Route: GET /wishlist/:userId
