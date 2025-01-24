@@ -1,6 +1,6 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const jwt = require("jsonwebtoken");
@@ -11,15 +11,35 @@ const serviceAccount = require("./config/real-estate-platform-653cf-firebase-adm
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(
-  cors({
-    origin: ["http://localhost:5173"],
+app.use(cors({
+    origin: ["http://localhost:5173", "https://real-estate-platform-653cf.web.app", "https://real-estate-platform-653cf.firebaseapp.com"],
     credentials: true,
   })
 );
 
 app.use(express.json());
 app.use(cookieParser());
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+};
+
+// Verify JWT Middleware
+const verifyToken = (req, res, next) => {
+  const token = req?.cookies?.token;
+  if (!token) {
+    return res.status(403).send("A token is required for authentication");
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    req.user = decoded;
+  } catch (err) {
+    return res.status(401).send("Invalid Token");
+  }
+  return next();
+};
 
 // MongoDB URI and client setup
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.b3ce0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -40,9 +60,9 @@ let offerCollection;
 let reviewCollection;
 let paymentCollection;
 
-async function connectToDatabase() {
+async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     database = client.db("propertypulse");
     propertiesCollection = database.collection("properties");
     wishlistCollection = database.collection("wishlist");
@@ -56,22 +76,6 @@ async function connectToDatabase() {
   }
 }
 
-// Verify JWT Middleware
-const verifyToken = (req, res, next) => {
-  const token = req?.cookies?.token;
-  if (!token) {
-    return res.status(403).send("A token is required for authentication");
-  }
-  try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    req.user = decoded;
-  } catch (err) {
-    return res.status(401).send("Invalid Token");
-  }
-  return next();
-};
-
-
 //jwt authentication
 app.post("/jwt-auth", (req, res) => {
   const { email } = req.body;
@@ -80,19 +84,21 @@ app.post("/jwt-auth", (req, res) => {
   });
   res.cookie("token", token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none'
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
     })
     .send({ success: false });
 });
 
 //logout
 app.post("/logout", (req, res) => {
-  res.clearCookie("token", {
-      httpOnly: true,
-      secure: false,
-    })
-    .send({ success: true });
+  res.clearCookie("token", { path: "/", httpOnly: true, secure: true });
+  res.status(200).send({ success: true });
+});
+
+//jwt get
+app.get("/jwt-get", verifyToken, (req, res) => {
+  res.send({ success: true});
 });
 
 // Routes
@@ -100,6 +106,7 @@ app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
+//register user
 app.put("/user",verifyToken, async (req, res) => {
   try {
     const userData = req.body;
@@ -114,6 +121,7 @@ app.put("/user",verifyToken, async (req, res) => {
   }
 });
 
+//user role
 app.get("/user-role/:email", verifyToken, async (req, res) => {
   try {
     const email = req.params.email;
@@ -207,7 +215,6 @@ app.put("/users/make-admin/:id", verifyToken, async (req, res) => {
     res.status(500).send({ error: "Failed to make admin" });
   }
 });
-
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -241,11 +248,10 @@ app.put("/properties/advertise/:id", verifyToken, async (req, res) => {
 });
 
 //get advertise properties
-app.get("/advertise-properties", verifyToken, async (req, res) => {
+app.get("/advertise-properties", async (req, res) => {
   try {
     const query = { advertise: true };
     const result = await propertiesCollection.find(query).toArray();
-
     res.send(result);
   } catch (error) {
     res.status(500).send({ error: "Failed to get properties" });
@@ -344,6 +350,7 @@ app.get("/my-properties/:email",verifyToken, async (req, res) => {
   res.send(result);
 });
 
+//add property
 app.post("/properties/add",verifyToken, async (req, res) => {
   const property = req.body;
   try {
@@ -362,6 +369,7 @@ app.get("/properties/details/:id", async (req, res) => {
   res.send(result);
 });
 
+// Update property
 app.patch("/properties/update/:id",verifyToken, async (req, res) => {
   const id = req.params.id;
   const property = req.body;
@@ -382,6 +390,7 @@ app.patch("/properties/update/:id",verifyToken, async (req, res) => {
   res.send(result);
 });
 
+//delete property
 app.delete("/properties/delete/:id",verifyToken, async (req, res) => {
   const id = req.params.id;
   const result = await propertiesCollection.deleteOne({
@@ -554,7 +563,6 @@ app.delete("/wishlist/:id", verifyToken, async (req, res) => {
   }
 });
 
-
 //offer made by a user
 app.post("/make-offer/:id",verifyToken, async (req, res) => {
   const offerDetails = req.body;
@@ -586,6 +594,7 @@ app.patch("/offers/accept/:id",verifyToken, async (req, res) => {
 
 // Start server and connect to MongoDB
 app.listen(port, async () => {
-  await connectToDatabase();
+  // await connectToDatabase();
   console.log(`Server is running on port ${port}`);
 });
+run().catch(console.dir);
