@@ -100,7 +100,7 @@ app.get("/", (req, res) => {
   res.send("Server is running");
 });
 
-app.put("/user", async (req, res) => {
+app.put("/user",verifyToken, async (req, res) => {
   try {
     const userData = req.body;
     const email = userData.email;
@@ -114,7 +114,7 @@ app.put("/user", async (req, res) => {
   }
 });
 
-app.get("/user-role/:email", async (req, res) => {
+app.get("/user-role/:email", verifyToken, async (req, res) => {
   try {
     const email = req.params.email;
     const query = { email: email };
@@ -128,18 +128,8 @@ app.get("/user-role/:email", async (req, res) => {
   }
 });
 
-//get all users
-app.get("/get-all-users", async (req, res) => {
-  try {
-    const users = await userCollection.find({}).toArray();
-    res.send(users);
-  } catch (error) {
-    res.status(500).send({ error: "Failed to get users" });
-  }
-});
-
 //Make Admin
-app.patch("/make-admin/:id", async (req, res) => {
+app.patch("/make-admin/:id",verifyToken, async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -148,21 +138,6 @@ app.patch("/make-admin/:id", async (req, res) => {
     res.send(result);
   } catch (error) {
     res.status(500).send({ error: "Failed to make admin" });
-  }
-});
-
-//check admin
-app.get("/check-admin/:email", async (req, res) => {
-  try {
-    const email = req.params.email;
-    if (!email) {
-      return res.status(403).send({ error: "Forbidden access" });
-    }
-    const query = { email: email, role: "admin" };
-    const isAdmin = await userCollection.findOne(query);
-    res.send({ admin: true });
-  } catch (error) {
-    res.status(500).send({ error: "Failed to get admin" });
   }
 });
 
@@ -192,7 +167,7 @@ app.put("/users/mark-fraud/:id", verifyToken, async (req, res) => {
 });
 
 //delete fraud user properties
-app.delete("/properties/agent/:email", async (req, res) => {
+app.delete("/properties/agent/:email", verifyToken, async (req, res) => {
   try {
     const email = req.params.email;
     const query = { agentEmail: email };
@@ -266,7 +241,7 @@ app.put("/properties/advertise/:id", verifyToken, async (req, res) => {
 });
 
 //get advertise properties
-app.get("/advertise-properties", async (req, res) => {
+app.get("/advertise-properties", verifyToken, async (req, res) => {
   try {
     const query = { advertise: true };
     const result = await propertiesCollection.find(query).toArray();
@@ -605,51 +580,6 @@ app.patch("/offers/accept/:id",verifyToken, async (req, res) => {
     }
   } catch (error) {
     console.error("Error accepting offer:", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// Route: PATCH /offer/:id/bought
-// Description: Update the offer status to 'bought' after payment is completed
-app.patch("/offer/:id/bought", async (req, res) => {
-  const { id } = req.params;
-  const { transactionId } = req.body; // Payment transaction ID
-
-  try {
-    const result = await offerDetails.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status: "bought", transactionId } }
-    );
-
-    if (result.modifiedCount > 0) {
-      res.json({ message: "Payment successful, offer marked as bought!" });
-    } else {
-      res.status(404).json({ message: "Offer not found" });
-    }
-  } catch (error) {
-    console.error("Error updating offer to bought:", error);
-    res.status(500).send("Internal Server Error");
-  }
-});
-
-// Route: POST /payment-success
-// Description: Handle successful payment and update the offer status
-app.post("/payment-success", async (req, res) => {
-  const { offerId, transactionId } = req.body;
-
-  try {
-    const result = await offerDetails.updateOne(
-      { _id: new ObjectId(offerId) },
-      { $set: { status: "bought", transactionId } }
-    );
-
-    if (result.modifiedCount > 0) {
-      res.json({ message: "Payment processed successfully!" });
-    } else {
-      res.status(404).json({ message: "Offer not found" });
-    }
-  } catch (error) {
-    console.error("Error processing payment:", error);
     res.status(500).send("Internal Server Error");
   }
 });
