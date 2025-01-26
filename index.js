@@ -137,7 +137,7 @@ app.get("/user-role/:email", verifyToken, async (req, res) => {
 });
 
 //Make Admin
-app.patch("/make-admin/:id",verifyToken, async (req, res) => {
+app.patch("/make-admin/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -160,7 +160,7 @@ app.get("/users", verifyToken, async (req, res) => {
 });
 
 //mark as fraud
-app.put("/users/mark-fraud/:id", verifyToken, async (req, res) => {
+app.put("/users/mark-fraud/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -175,7 +175,7 @@ app.put("/users/mark-fraud/:id", verifyToken, async (req, res) => {
 });
 
 //delete fraud user properties
-app.delete("/properties/agent/:email", verifyToken, async (req, res) => {
+app.delete("/properties/agent/:email", async (req, res) => {
   try {
     const email = req.params.email;
     const query = { agentEmail: email };
@@ -187,7 +187,7 @@ app.delete("/properties/agent/:email", verifyToken, async (req, res) => {
 });
 
 //make agent
-app.put("/users/make-agent/:id", verifyToken, async (req, res) => {
+app.put("/users/make-agent/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -202,7 +202,7 @@ app.put("/users/make-agent/:id", verifyToken, async (req, res) => {
 });
 
 //make admin
-app.put("/users/make-admin/:id", verifyToken, async (req, res) => {
+app.put("/users/make-admin/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -220,7 +220,7 @@ admin.initializeApp({
 });
 
 //delete user
-app.delete("/users/:id", verifyToken, async (req, res) => {
+app.delete("/users/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { uid: id };
@@ -233,7 +233,7 @@ app.delete("/users/:id", verifyToken, async (req, res) => {
 });
 
 //update advertise property
-app.put("/properties/advertise/:id", verifyToken, async (req, res) => {
+app.put("/properties/advertise/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -270,7 +270,7 @@ app.get("/offers/agent/:email",verifyToken, async (req, res) => {
 });
 
 // payment api
-app.post("/create-payment-intent", verifyToken, async (req, res) => {
+app.post("/create-payment-intent", async (req, res) => {
   const { price } = req.body;
   // Create a PaymentIntent with the order amount and currency
   const paymentIntent = await stripe.paymentIntents.create({
@@ -287,7 +287,7 @@ app.post("/create-payment-intent", verifyToken, async (req, res) => {
 });
 
 //payment 
-app.post("/payments", verifyToken, async (req, res) => {
+app.post("/payments", async (req, res) => {
   const paymentInfo = req.body;
   try {
     const paymentIntent = await paymentCollection.insertOne(
@@ -315,7 +315,7 @@ app.get("/sold-properties/agent/:email",verifyToken, async (req, res) => {
 });
 
 //reject request property
-app.patch("/offers/reject/:id", verifyToken, async (req, res) => {
+app.patch("/offers/reject/:id", async (req, res) => {
   try {
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
@@ -351,7 +351,7 @@ app.get("/my-properties/:email",verifyToken, async (req, res) => {
 });
 
 //add property
-app.post("/properties/add",verifyToken, async (req, res) => {
+app.post("/properties/add", async (req, res) => {
   const property = req.body;
   try {
     const result = await propertiesCollection.insertOne(property);
@@ -370,7 +370,7 @@ app.get("/properties/details/:id", async (req, res) => {
 });
 
 // Update property
-app.patch("/properties/update/:id",verifyToken, async (req, res) => {
+app.patch("/properties/update/:id", async (req, res) => {
   const id = req.params.id;
   const property = req.body;
   const result = await propertiesCollection.updateOne(
@@ -391,7 +391,7 @@ app.patch("/properties/update/:id",verifyToken, async (req, res) => {
 });
 
 //delete property
-app.delete("/properties/delete/:id",verifyToken, async (req, res) => {
+app.delete("/properties/delete/:id", async (req, res) => {
   const id = req.params.id;
   const result = await propertiesCollection.deleteOne({
     _id: new ObjectId(id),
@@ -400,7 +400,7 @@ app.delete("/properties/delete/:id",verifyToken, async (req, res) => {
 });
 
 //verify property
-app.patch("/properties/verify/:id", verifyToken, async (req, res) => {
+app.patch("/properties/verify/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const result = await propertiesCollection.updateOne(
@@ -428,7 +428,7 @@ app.get("/offers/user/:email",verifyToken , async (req, res) => {
 });
 
 //reject request property
-app.patch("/properties/reject/:id", verifyToken, async (req, res) => {
+app.patch("/properties/reject/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const result = await propertiesCollection.updateOne(
@@ -478,7 +478,7 @@ app.get("/property/reviews/:id", verifyToken , async (req, res) => {
 });
 
 //insert property review
-app.post("/property/review",verifyToken, async (req, res) => {
+app.post("/property/review", async (req, res) => {
   const review = req.body;
   const result = await reviewCollection.insertOne(review);  
 
@@ -495,7 +495,7 @@ app.get("/reviews/user/:email",verifyToken, async (req, res) => {
 });
 
 //delete review
-app.delete("/reviews/:id", verifyToken,  async (req, res) => {
+app.delete("/reviews/:id",  async (req, res) => {
   const id = req.params.id;
   const result = await reviewCollection.deleteOne({
     _id: new ObjectId(id),
@@ -510,7 +510,7 @@ app.get("/reviews", verifyToken, async (req, res) => {
 });
 
 //delete review by admin
-app.delete("/admin/reviews/:id", verifyToken, async (req, res) => {
+app.delete("/admin/reviews/:id", async (req, res) => {
   const id = req.params.id;
   const email=req.body.email;
   const result = await reviewCollection.deleteOne({
@@ -532,7 +532,7 @@ app.get("/wishlist/:userId",verifyToken, async (req, res) => {
 });
 
 //add to wishlist
-app.post("/wishlist", verifyToken, async (req, res) => {
+app.post("/wishlist", async (req, res) => {
   const wishlistItem = req.body;
   if (!wishlistItem.userId || !wishlistItem.propertyId) {
     return res.status(400).json({ message: "Invalid data format" });
@@ -550,7 +550,7 @@ app.post("/wishlist", verifyToken, async (req, res) => {
 });
 
 //remove from wishlist
-app.delete("/wishlist/:id", verifyToken, async (req, res) => {
+app.delete("/wishlist/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const result = await wishlistCollection.deleteOne({
@@ -564,14 +564,14 @@ app.delete("/wishlist/:id", verifyToken, async (req, res) => {
 });
 
 //offer made by a user
-app.post("/make-offer/:id",verifyToken, async (req, res) => {
+app.post("/make-offer/:id", async (req, res) => {
   const offerDetails = req.body;
   const result = await offerCollection.insertOne(offerDetails);
   res.send(result);
 });
 
 //offer accepted by agent
-app.patch("/offers/accept/:id",verifyToken, async (req, res) => {
+app.patch("/offers/accept/:id", async (req, res) => {
   const { id } = req.params;
   const propertyId=req.body.propertyId;
   try {
